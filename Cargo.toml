@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 solana-program = "1.18.17"
+borsh = "1.5.1"            # Borsh pour la sérialisation/desérialisation
+borsh-derive = "1.5.1"     # Pour utiliser le derive macro
 
 [lib]
-crate-type = ["cdylib", "lib"] 
+crate-type = ["cdylib", "lib"]

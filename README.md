@@ -36,9 +36,12 @@ In `Cargo.toml` file, add needed solana dependancies :
 ```toml
 [dependencies]
 solana-program = "1.18.17"
+borsh = "1.5.1"            # Borsh pour la sérialisation/desérialisation
+borsh-derive = "1.5.1"     # Pour utiliser le derive macro
 ```
 
-And libs...
+And libs, if you want to generate `.so`...
+
 ```toml
 [lib]
 crate-type = ["cdylib", "lib"]
@@ -77,3 +80,6 @@ This will return the address of your program on Solana.
 - [Solana Bytes - Processing Instructions (Native) - YouTube](https://www.youtube.com/watch?v=T5p8rGD0-vs)
 - [Solana Account Data Comparison -- Native vs. Anchor - YouTube](https://www.youtube.com/watch?v=71pkNLasq6c)
 - [Working with Accounts in Rust Native Solana Programs [Solana Dev Course: M3 P3] - Dec 2nd '22 - YouTube](https://www.youtube.com/watch?v=Dg9p_JaqQQE)
+- [rust - Unable to generate .so file for solana deployment. (No errors) - Stack Overflow](https://stackoverflow.com/questions/71287531/unable-to-generate-so-file-for-solana-deployment-no-errors)
+
+
