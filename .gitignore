@@ -1,1 +1,9 @@
 /target
+backup/
+.zipignore
+history.log
+versions.log
+notes.md
+notes.txt
+solana_cfg.log
+test-ledger/
