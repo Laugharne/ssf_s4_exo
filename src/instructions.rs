@@ -14,7 +14,6 @@ use solana_program::{
 pub struct Vault {
 	pub owner  : Pubkey,
 	pub balance: u64,
-	//pub last_withdrawal: u64,  // Unix timestamp
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
@@ -26,7 +25,7 @@ pub struct Pda {
 }
 
 
-pub const DELAY: u64            = 10;          // seconds
+pub const DELAY: i64            = 10;          // seconds
 pub const TAG_SSF_PDA: &[u8; 7] = b"SSF_PDA";
 
 
@@ -142,7 +141,7 @@ pub fn deposit(
 		let rent: Rent = Rent::get()?;
 
 		// Calculates the minimum lamports (SOL) needed to create and maintain the account.
-		let required_lamports: u64 = rent.minimum_balance(std::mem::size_of::<Vault>());
+		let required_lamports: u64 = rent.minimum_balance(std::mem::size_of::<Pda>());
 
 		// Creates an instruction to create a new account for the PDA.
 		let ix: solana_program::instruction::Instruction = system_instruction::create_account(
@@ -189,7 +188,6 @@ pub fn deposit(
 
 	// Serialize the PDA's data into the account's memory.
 	let mut vault_data: Pda = Pda::try_from_slice(&user_pda.data.borrow())?;
-
 
 	if vault_data.done == true {
 		return Err(ProgramError::InvalidArgument);
@@ -257,6 +255,10 @@ pub fn partial_withdraw(
 		return Err(ProgramError::IllegalOwner);
 	}
 
+	if pda_data.done == true {
+		return Err(ProgramError::Custom(1)); // Custom withdrawal already done
+	}
+
 	// Calculate the partial withdrawal amount (1/10th of the vault's balance)
 	let withdrawal_amount: u64 = pda_data.balance.checked_div(10)
 		.ok_or(ProgramError::InsufficientFunds)?;
@@ -269,6 +271,16 @@ pub fn partial_withdraw(
 	// Deduct the withdrawn amount from the vault's balance
 	pda_data.balance = pda_data.balance.checked_sub(withdrawal_amount)
 		.ok_or(ProgramError::ArithmeticOverflow)?;
+
+	// update timestamp
+	// Expressed as Unix time (i.e. seconds since the Unix epoch).
+	let clock: Clock      = Clock::get()?;
+	let time_elapsed: i64 = clock.unix_timestamp - pda_data.deposit_time as i64;
+	if time_elapsed < DELAY {
+		return Err(ProgramError::Custom(0)); // Custom error: Withdrawal too soon
+	}
+
+	pda_data.done = true;
 
 	// Serialize the updated vault data back into the PDA account
 	pda_data.serialize(&mut &mut vault.data.borrow_mut()[..])?;
