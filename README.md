@@ -84,5 +84,7 @@ This will return the address of your program on Solana.
 - [Solana Account Data Comparison -- Native vs. Anchor - YouTube](https://www.youtube.com/watch?v=71pkNLasq6c)
 - [Working with Accounts in Rust Native Solana Programs [Solana Dev Course: M3 P3] - Dec 2nd '22 - YouTube](https://www.youtube.com/watch?v=Dg9p_JaqQQE)
 - [rust - Unable to generate .so file for solana deployment. (No errors) - Stack Overflow](https://stackoverflow.com/questions/71287531/unable-to-generate-so-file-for-solana-deployment-no-errors)
+- [Space Reference - The Anchor Book v0.29.0](https://book.anchor-lang.com/anchor_references/space.html)
+
 
 

@@ -13,7 +13,7 @@ use solana_program::{
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct Vault {
 	pub owner  : Pubkey,
-	pub balance: u64,
+	//pub balance: u64,
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
