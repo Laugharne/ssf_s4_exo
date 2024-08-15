@@ -95,8 +95,7 @@ pub fn initialize(
 	// Access (deserialization) to the data inside the `vault` account
 	let mut vault_data: Vault = Vault::try_from_slice(&vault.data.borrow())?;
 
-	vault_data.owner   = *user.key;
-	vault_data.balance = 0;
+	vault_data.owner = *user.key;
 
 	// Serializes the updated Vault structure and writes that data to
 	// the vault account, storing the new values ​​in the blockchain.
@@ -310,30 +309,3 @@ pub fn partial_withdraw(
 	Ok(())
 }
 
-
-/*
-pub fn transfer_sol_with_cpi(
-	accounts: &[AccountInfo],
-	amount:   u64
-) -> ProgramResult {
-	let accounts_iter  = &mut accounts.iter();
-	let payer          = next_account_info(accounts_iter)?;
-	let recipient      = next_account_info(accounts_iter)?;
-	let system_program = next_account_info(accounts_iter)?;
-
-	invoke(
-		&system_instruction::transfer(
-			payer.key,
-			recipient.key,
-			amount
-		),
-		&[
-			payer.clone(),
-			recipient.clone(),
-			system_program.clone()
-		],
-	)?;
-
-	Ok(())
-}
-*/

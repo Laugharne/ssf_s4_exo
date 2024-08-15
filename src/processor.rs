@@ -12,7 +12,6 @@ pub enum NativeVaultInstruction {
 	Initialize(),
 	Deposit(u64),
 	PartialWithdraw(),
-	//CpiTransfer(u64),
 }
 
 pub fn process_instruction(
@@ -39,11 +38,6 @@ pub fn process_instruction(
 			program_id,
 			accounts,
 		),
-
-		// NativeVaultInstruction::CpiTransfer(args) => transfer_sol_with_cpi(
-		// 	accounts,
-		// 	args
-		// ),
 
 	}
 

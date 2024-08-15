@@ -36,11 +36,13 @@ cd my-solana-program
 ### **Add Solana dependancies**
 In `Cargo.toml` file, add needed solana dependancies :
 
+Replace `1.18.17` by the last stable needed version.
+
 ```toml
 [dependencies]
 solana-program = "1.18.17"
-borsh = "1.5.1"            # Borsh pour la sérialisation/desérialisation
-borsh-derive = "1.5.1"     # Pour utiliser le derive macro
+borsh = "1.5.1"            # Borsh for serialisation/deserialisation
+borsh-derive = "1.5.1"     # using `derive` macro
 ```
 
 And libs, if you want to generate `.so`...
@@ -50,8 +52,6 @@ And libs, if you want to generate `.so`...
 crate-type = ["cdylib", "lib"]
 ```
 
-
-Replace `1.18.17` by the last stable needed version.
 
 ### **Compile the program**
 Compile your program to generate a Solana-compatible binary.
@@ -70,6 +70,208 @@ solana program deploy target/deploy/program.so
 ```
 
 This will return the address of your program on Solana.
+
+### Components
+
+
+```rust
+```
+**processor.rs**
+
+```rust
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
+pub enum NativeVaultInstruction {
+    Initialize(),
+    Deposit(u64),
+    PartialWithdraw(),
+}
+```
+
+```rust
+pub fn process_instruction(
+    program_id: &Pubkey,
+    accounts  : &[AccountInfo],
+    input     : &[u8],
+) -> ProgramResult {
+    let instruction: NativeVaultInstruction = NativeVaultInstruction::try_from_slice(input)?;
+
+    match instruction {
+
+        NativeVaultInstruction::Initialize() => initialize(
+            program_id,
+            accounts,
+        ),
+
+        NativeVaultInstruction::Deposit(args) => deposit(
+            program_id,
+            accounts,
+            args
+        ),
+
+        NativeVaultInstruction::PartialWithdraw() => partial_withdraw(
+            program_id,
+            accounts,
+        ),
+
+    }
+
+}
+```
+**instructions.rs**
+
+#### Creating account
+
+See initialize() funcion for more comments
+
+```rust
+// Creating account
+let rent: Rent = Rent::get()?;
+
+let required_lamports: u64 = rent.minimum_balance(
+    std::mem::size_of::<Vault>()
+);
+
+let ix: solana_program::instruction::Instruction = system_instruction::create_account(
+    &user.key,
+    &vault.key,
+    required_lamports,
+    std::mem::size_of::<Vault>() as u64,
+    program_id,
+);
+
+// `ix` contains the account creation instruction ready to be executed.
+
+// Sends the account creation instruction to the Solana blockchain for execution.
+invoke(
+    &ix,
+    &[
+        user.clone          (),
+        vault.clone         (),
+        system_program.clone(),
+    ]
+)?;
+
+```
+> If the instruction is successfully executed,
+> the vault account will be created on the Solana blockchain,
+> and the balance required for the rent will be transferred
+> from the user account to the vault account.
+
+#### Data access (serialization/usage/deserialization)
+
+```rust
+// Access (deserialization) to the data inside the `vault` account
+let mut vault_data: Vault = Vault::try_from_slice(&vault.data.borrow())?;
+```
+
+```rust
+vault_data.owner = *user.key;
+```
+
+```rust
+// Serializes the updated Vault structure and writes that data to
+// the vault account, storing the new values ​​in the blockchain.
+vault_data.serialize(&mut &mut vault.data.borrow_mut()[..])?;
+```
+#### PDA creation
+
+**Derive the PDA using the user's public key**
+
+```rust
+let (computed_pda, bump_seed) = Pubkey::find_program_address(
+    &[
+        TAG_SSF_PDA    ,     // A constant seed used to differentiate this PDA.
+        user.key.as_ref(),   // The public key of the user.
+    ],
+    program_id  // The program ID for which the address is derived.
+);
+```
+
+**Verify that the derived PDA matches the provided PDA.**
+
+```rust
+if user_pda.key != &computed_pda {
+    return Err(ProgramError::InvalidAccountData);
+}
+```
+
+**If the PDA account is empty (new), it needs to be initialized.**
+
+```rust
+if user_pda.data_is_empty() {
+    // Gets the rent exemption amount required to keep the account alive.
+    let rent: Rent = Rent::get()?;
+    let required_lamports: u64 = rent.minimum_balance(std::mem::size_of::<Pda>());
+
+    // Creates an instruction to create a new account for the PDA.
+    let ix: solana_program::instruction::Instruction = system_instruction::create_account(
+        &user.key               ,            // The user paying for the creation of the account.
+        &computed_pda           ,            // The PDA to be created.
+        required_lamports       ,            // The lamports needed for rent exemption.
+        std::mem::size_of::<Pda>() as u64,   // Size of the account in bytes.
+        program_id              ,            // The program ID for which the account is being created.
+    );
+
+    // Invokes the instruction to create the PDA account.
+    invoke(
+        &ix,
+        &[
+            user.clone          (),   // User's account
+            user_pda.clone      (),   // PDA account
+            system_program.clone(),   // System program account
+        ],
+    )?;
+
+    // Initialize the PDA's data with default values.
+    let mut vault_data: Pda = Pda {
+        signer      : *user.key,   // Sets the user as the owner of the PDA.
+        balance     : 0,           // Initial balance of the PDA.
+        deposit_time: 0,           // Initial deposit timestamp set to 0.
+        done        : false,       // Indicates if the PDA is finalized (closed).
+    };
+
+    vault_data.serialize(&mut &mut user_pda.data.borrow_mut()[..])?;
+
+}
+```
+
+#### Get timestamp
+
+```rust
+// Expressed as Unix time (i.e. seconds since the Unix epoch).
+let clock: Clock        = Clock::get()?;
+vault_data.deposit_time = clock.unix_timestamp as i64;
+```
+
+#### SOL transfer
+
+```rust
+// Expressed as Unix time (i.e. seconds since the Unix epoch).
+let clock: Clock        = Clock::get()?;
+vault_data.deposit_time = clock.unix_timestamp as i64;
+```
+
+
+## Tree repository
+
+```bash
+.
+├── client
+│   ├── README.md
+│   ├── bun.lockb
+│   ├── index.ts
+│   ├── package.json
+│   └── tsconfig.json
+├── src
+│   ├── instructions.rs
+│   ├── lib.rs
+│   └── processor.rs
+├── .gitignore
+├── 2024-08-11-14-07-55.png
+├── Cargo.lock
+├── Cargo.toml
+└── README.md
+```
 
 
 ## Resources

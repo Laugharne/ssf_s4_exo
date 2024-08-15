@@ -1,5 +1,3 @@
-console.log("Hello via Bun!");
-
 import { Connection, clusterApiUrl, SystemProgram, Keypair, PublicKey, LAMPORTS_PER_SOL, TransactionInstruction, Transaction, sendAndConfirmTransaction } from  "@solana/web3.js";
 import { Buffer } from 'node:buffer';
 
@@ -93,6 +91,7 @@ import { Buffer } from 'node:buffer';
 
 	// instruction index
 	const ixIdxDeposit = 1;
+
 	/*
 	pub struct Pda {
 		pub signer      : Pubkey,
@@ -124,7 +123,6 @@ import { Buffer } from 'node:buffer';
 	let user: &AccountInfo           = next_account_info(accounts_iter)?;
 	let user_pda: &AccountInfo       = next_account_info(accounts_iter)?;
 	let system_program: &AccountInfo = next_account_info(accounts_iter)?;
-
 	*/
 	const ixDeposit = new TransactionInstruction({
 		keys:[
@@ -149,13 +147,63 @@ import { Buffer } from 'node:buffer';
 		data: ixDataDeposit,
 	});
 
-
-	const transactionDeposit = new Transaction().add(ixInitialize);
+	const transactionDeposit = new Transaction().add(ixDeposit);
 	const txHashDeposit = await sendAndConfirmTransaction(
 		connection,
 		transactionDeposit,
-		[payer, newAccountKp],
+		[user],
 	);
 	console.log(`Use 'solana confirm -v ${txHashDeposit}' to see the logs`);
+
+	// instruction index
+	const ixIdxWithdraw = 2;
+
+	// Create instruction data buffer
+    const ixDataWithdraw = Buffer.alloc(sizePda + 8);
+    ixDataWithdraw.writeUInt8(ixIdxWithdraw, 0);
+
+	const [withdrawPda, withdrawBump] = PublicKey.findProgramAddressSync(
+		[
+			Buffer.from(TAG_SSF_PDA),
+			user.publicKey.toBuffer()
+		],
+		PROGRAM_ID
+	);
+
+	/*
+	let user: &AccountInfo           = next_account_info(accounts_iter)?;
+	let vault: &AccountInfo          = next_account_info(accounts_iter)?;
+	let system_program: &AccountInfo = next_account_info(accounts_iter)?;
+	*/
+	const ixWithdraw = new TransactionInstruction({
+		keys:[
+			{// user: &AccountInfo
+				pubkey    : user.publicKey,
+				isSigner  : true,
+				isWritable: true,
+			},
+			{// vault: &AccountInfo
+				pubkey    : withdrawPda,
+				isSigner  : true,
+				isWritable: true,
+			},
+			{// system_program: &AccountInfo
+				pubkey    : SystemProgram.programId,
+				isSigner  : false,
+				isWritable: false,
+			},
+
+		],
+		programId: PROGRAM_ID,
+		data: ixDataWithdraw,
+	});
+
+	const transactionWithdraw = new Transaction().add(ixWithdraw);
+	const txHashWithdraw = await sendAndConfirmTransaction(
+		connection,
+		transactionWithdraw,
+		[user],
+	);
+	console.log(`Use 'solana confirm -v ${txHashWithdraw}' to see the logs`);
 
 })();
