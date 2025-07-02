@@ -246,9 +246,15 @@ vault_data.deposit_time = clock.unix_timestamp as i64;
 #### SOL transfer
 
 ```rust
-// Expressed as Unix time (i.e. seconds since the Unix epoch).
-let clock: Clock        = Clock::get()?;
-vault_data.deposit_time = clock.unix_timestamp as i64;
+// Transfer SOL from user to PDA
+invoke(
+    &system_instruction::transfer(&user.key, &user_pda.key, amount),
+    &[
+        user.clone(),
+        user_pda.clone(),
+        system_program.clone(),
+    ],
+)?;
 ```
 
 
